@@ -99,7 +99,20 @@
       transactionCount: number
       savingsOpportunity: number
       generatedAt: string
+      importId?: number
+      sourceFilename?: string
+      persisted?: boolean
     }
+  }
+
+  type ImportSummary = {
+    id: number
+    bank: string
+    sourceFilename: string
+    importedAt: string
+    transactionCount: number
+    netCashFlow: number
+    savingsRate: number
   }
 
   const banks = ['Capitec', 'FNB', 'Standard Bank', 'Absa', 'Nedbank', 'Other']
@@ -292,6 +305,7 @@
       transactionCount: 42,
       savingsOpportunity: 638,
       generatedAt: '2026-05-27T00:00:00+02:00',
+      persisted: false,
     },
   }
 
@@ -300,6 +314,8 @@
   let selectedBank = banks[0]
   let transactionSearch = ''
   let apiStatus = 'Sample data active'
+  let savedImports: ImportSummary[] = []
+  let importsStatus = 'No saved imports yet'
   let isLoading = false
   let uploadError = ''
 
@@ -319,6 +335,7 @@
 
   onMount(() => {
     void loadDemo()
+    void loadImports()
   })
 
   async function loadDemo() {
@@ -342,6 +359,44 @@
     }
   }
 
+  async function loadImports() {
+    try {
+      const response = await fetch('/api/imports')
+
+      if (!response.ok) {
+        throw new Error('Import history unavailable')
+      }
+
+      const payload = await response.json()
+      savedImports = payload.data ?? []
+      importsStatus = savedImports.length > 0 ? `${savedImports.length} saved` : 'No saved imports yet'
+    } catch {
+      savedImports = []
+      importsStatus = 'Database unavailable'
+    }
+  }
+
+  async function loadSavedImport(importId: number) {
+    isLoading = true
+    uploadError = ''
+
+    try {
+      const response = await fetch(`/api/imports/${importId}`)
+
+      if (!response.ok) {
+        throw new Error('Could not load saved import')
+      }
+
+      dashboard = await response.json()
+      activeView = 'overview'
+      apiStatus = 'Saved import loaded'
+    } catch {
+      uploadError = 'Could not load that saved import from the database.'
+    } finally {
+      isLoading = false
+    }
+  }
+
   async function handleStatementChange(event: Event) {
     const input = event.currentTarget as HTMLInputElement
     const file = input.files?.[0]
@@ -350,29 +405,35 @@
       return
     }
 
-    const formData = new FormData()
-    formData.append('statement', file)
-    formData.append('bank', selectedBank)
-
     isLoading = true
     uploadError = ''
     apiStatus = `Analysing ${file.name}`
 
     try {
-      const response = await fetch('/api/statements/preview', {
+      const statementContents = await file.text()
+      const response = await fetch('/api/imports', {
         method: 'POST',
-        body: formData,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bank: selectedBank,
+          sourceFilename: file.name,
+          statementContents,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error('Statement analysis failed')
+        throw new Error('Statement import failed')
       }
 
       dashboard = await response.json()
       activeView = 'overview'
-      apiStatus = `${file.name} analysed`
+      apiStatus = `${file.name} saved`
+      await loadImports()
     } catch {
-      uploadError = 'Could not reach the Laravel API. The sample dashboard is still available.'
+      uploadError = 'Could not save the statement. Check your Laravel database connection and migrations.'
       dashboard = fallbackData
       apiStatus = 'Sample data active'
     } finally {
@@ -407,6 +468,13 @@
 
   function categoryBarWidth(category: Category) {
     return `${Math.min(Math.max(category.percentage, 4), 100)}%`
+  }
+
+  function shortDate(value: string) {
+    return new Intl.DateTimeFormat('en-ZA', {
+      day: '2-digit',
+      month: 'short',
+    }).format(new Date(value))
   }
 
   function donutStyle(categories: Category[]) {
@@ -453,6 +521,32 @@
         Privacy
       </button>
     </nav>
+
+    <section class="import-history" aria-label="Saved statement imports">
+      <div class="history-heading">
+        <span>Saved imports</span>
+        <small>{importsStatus}</small>
+      </div>
+
+      {#if savedImports.length > 0}
+        <div class="history-list">
+          {#each savedImports as importItem}
+            <button
+              class:current={dashboard.meta.importId === importItem.id}
+              onclick={() => loadSavedImport(importItem.id)}
+            >
+              <strong>{importItem.bank}</strong>
+              <span>{importItem.sourceFilename}</span>
+              <small>
+                {shortDate(importItem.importedAt)} / {importItem.transactionCount} txns
+              </small>
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <p class="history-empty">Upload a CSV to create your first saved import.</p>
+      {/if}
+    </section>
 
     <div class="sidebar-note">
       <ShieldCheck size={18} />

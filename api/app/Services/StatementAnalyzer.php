@@ -33,7 +33,7 @@ class StatementAnalyzer
 
     public function fromUploadedFile(UploadedFile $file, string $bank): array
     {
-        $transactions = $this->parseCsv($file);
+        $transactions = $this->parseUploadedFile($file);
 
         return $this->analyze($transactions, $bank);
     }
@@ -43,11 +43,7 @@ class StatementAnalyzer
      */
     public function analyze(array $transactions, string $bank): array
     {
-        $prepared = collect($transactions)
-            ->map(fn (array $transaction) => $this->prepareTransaction($transaction))
-            ->filter(fn (?array $transaction) => $transaction !== null)
-            ->sortBy('date')
-            ->values();
+        $prepared = $this->prepareTransactions($transactions);
 
         $income = round($prepared->where('amount', '>', 0)->sum('amount'), 2);
         $spending = round(abs($prepared->where('amount', '<', 0)->sum('amount')), 2);
@@ -120,7 +116,7 @@ class StatementAnalyzer
         ];
     }
 
-    private function parseCsv(UploadedFile $file): array
+    public function parseUploadedFile(UploadedFile $file): array
     {
         $handle = fopen($file->getRealPath(), 'r');
 
@@ -128,6 +124,28 @@ class StatementAnalyzer
             return [];
         }
 
+        return $this->parseCsvHandle($handle);
+    }
+
+    public function parseCsvText(string $contents): array
+    {
+        $handle = fopen('php://temp', 'r+');
+
+        if ($handle === false) {
+            return [];
+        }
+
+        fwrite($handle, $contents);
+        rewind($handle);
+
+        return $this->parseCsvHandle($handle);
+    }
+
+    /**
+     * @param  resource  $handle
+     */
+    private function parseCsvHandle($handle): array
+    {
         $headers = null;
         $transactions = [];
 
@@ -138,6 +156,7 @@ class StatementAnalyzer
 
             if ($headers === null) {
                 $headers = array_map(fn (string $value) => $this->normalizeKey($value), $row);
+
                 continue;
             }
 
@@ -158,6 +177,19 @@ class StatementAnalyzer
         fclose($handle);
 
         return $transactions;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $transactions
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function prepareTransactions(array $transactions): Collection
+    {
+        return collect($transactions)
+            ->map(fn (array $transaction) => $this->prepareTransaction($transaction))
+            ->filter(fn (?array $transaction) => $transaction !== null)
+            ->sortBy('date')
+            ->values();
     }
 
     /**

@@ -132,6 +132,9 @@ h2 {
 
 .brand strong,
 .brand span,
+.history-list strong,
+.history-list span,
+.history-list small,
 .transaction-table strong,
 .transaction-table small,
 .goal-topline strong,
@@ -200,6 +203,76 @@ h2 {
   background: rgba(255, 255, 255, 0.06);
   color: #c9d7d0;
   font-size: 14px;
+}
+
+.import-history {
+  display: grid;
+  gap: 12px;
+}
+
+.history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #e8f2ed;
+}
+
+.history-heading span {
+  font-size: 13px;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-heading small,
+.history-empty,
+.history-list small,
+.history-list span {
+  color: #a7b8b0;
+}
+
+.history-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.history-list button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.055);
+  color: #f4faf6;
+  text-align: left;
+}
+
+.history-list button:hover,
+.history-list button.current {
+  border-color: rgba(233, 188, 89, 0.5);
+  background: rgba(233, 188, 89, 0.11);
+}
+
+.history-list strong {
+  font-size: 14px;
+}
+
+.history-list span,
+.history-list small {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace {
@@ -958,6 +1031,10 @@ mark.review {
   }
 
   .sidebar-note {
+    display: none;
+  }
+
+  .import-history {
     display: none;
   }
 
