@@ -462,10 +462,13 @@
 
   <section class="workspace">
     <header class="topbar">
-      <div>
+      <div class="title-stack">
         <p class="eyebrow">Personal finance coach for South Africans</p>
         <h1>{dashboard.profile.bank}</h1>
-        <span class="period">{dashboard.profile.period}</span>
+        <div class="title-meta">
+          <span class="period">{dashboard.profile.period}</span>
+          <span class="bank-badge">{dashboard.profile.currency}</span>
+        </div>
       </div>
 
       <div class="topbar-actions">
@@ -490,7 +493,7 @@
 
     <section class="hero-band">
       <div class="health-score" aria-label={`Money health score ${dashboard.healthScore}`}>
-        <span>Money Health</span>
+        <span>Money health</span>
         <strong>{dashboard.healthScore}</strong>
         <small>/100</small>
       </div>
@@ -504,6 +507,11 @@
           RandWise turns local bank statement data into cash-flow, debit order, and savings-goal
           decisions that feel practical in rand terms.
         </p>
+        <div class="coach-chips" aria-label="Dashboard highlights">
+          <span>Debit orders</span>
+          <span>Local categories</span>
+          <span>Goal planning</span>
+        </div>
       </div>
       <div class="status-pill">
         <BadgeCheck size={17} />
@@ -520,7 +528,10 @@
         {#each dashboard.metrics as metric}
           <article class={`metric-card ${metric.tone}`}>
             <div>
-              <span>{metric.label}</span>
+              <div class="metric-card-head">
+                <span>{metric.label}</span>
+                <i aria-hidden="true"></i>
+              </div>
               <strong>{formatMetric(metric)}</strong>
             </div>
             <p>{metric.detail}</p>
@@ -599,7 +610,7 @@
               <section class="recurring-item">
                 <div>
                   <strong>{payment.merchant}</strong>
-                  <span>{payment.category} • seen {payment.paymentsSeen} times</span>
+                  <span>{payment.category} / seen {payment.paymentsSeen} times</span>
                 </div>
                 <div>
                   <strong>{formatCurrency(payment.monthlyCost)}</strong>
